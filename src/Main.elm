@@ -60,6 +60,8 @@ type Msg
     | MoveDown
     | MoveLeft
     | MoveRight
+    | MoveHome
+    | MoveEnd
     | NewLine
     | InsertChar Char
     | InsertString String
@@ -186,6 +188,12 @@ keyDownToMsg withPrefix string =
 
                 "ArrowRight" ->
                     JD.succeed MoveRight
+
+                "Home" ->
+                    JD.succeed MoveHome
+
+                "End" ->
+                    JD.succeed MoveEnd
 
                 "Backspace" ->
                     JD.succeed RemoveCharBefore
@@ -487,6 +495,16 @@ update msg model =
 
         MoveLeft ->
             ( { model | cursor = moveLeft model.cursor model.line }
+            , Cmd.none
+            )
+
+        MoveHome ->
+            ( { model | cursor = { column = 0 } }
+            , Cmd.none
+            )
+
+        MoveEnd ->
+            ( { model | cursor = { column = String.length model.line } }
             , Cmd.none
             )
 
