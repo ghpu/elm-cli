@@ -62,6 +62,7 @@ type Msg
     | MoveRight
     | MoveHome
     | MoveEnd
+    | Tab
     | NewLine
     | InsertChar Char
     | InsertString String
@@ -204,6 +205,9 @@ keyDownToMsg withPrefix string =
                 "Enter" ->
                     JD.succeed NewLine
 
+                "Tab" ->
+                    JD.succeed Tab
+
                 "Meta" ->
                     JD.succeed (HoldModifierKey Meta)
 
@@ -342,19 +346,81 @@ viewChar position column char =
             [ H.text (String.fromChar char) ]
 
 
-moveLeft : Position -> String -> Position
-moveLeft ({ column } as position) line =
+firstLeftNonSpace : String -> Int -> Int
+firstLeftNonSpace content cursor =
+    -- find first non space character after a space before current position
+    let
+        subcontent =
+            String.toList (String.slice 0 (cursor - 1) content)
+
+        pos =
+            Tuple.second
+                (List.foldl
+                    (\char acc ->
+                        let
+                            dbg =
+                                Debug.log "acc" ( char, acc )
+                        in
+                        if char == ' ' then
+                            ( Tuple.first acc + 1, Tuple.first acc + 1 )
+
+                        else
+                            ( Tuple.first acc + 1, Tuple.second acc )
+                    )
+                    ( -1, -1 )
+                    subcontent
+                )
+    in
+    pos + 1
+
+
+firstRightNonSpace : String -> Int -> Int
+firstRightNonSpace content cursor =
+    -- find first non space character before a space after current postiion
+    let
+        subcontent =
+            String.toList (String.slice 0 (String.length content - cursor) (String.reverse content))
+
+        pos =
+            Tuple.second
+                (List.foldl
+                    (\char acc ->
+                        let
+                            dbg =
+                                Debug.log "acc" ( char, acc )
+                        in
+                        if char == ' ' then
+                            ( Tuple.first acc + 1, Tuple.first acc + 1 )
+
+                        else
+                            ( Tuple.first acc + 1, Tuple.second acc )
+                    )
+                    ( -1, -1 )
+                    subcontent
+                )
+    in
+    min (String.length content) (String.length content - pos)
+
+
+moveLeft : Position -> String -> InputModifier -> Position
+moveLeft ({ column } as position) line modifier =
     if column == 0 then
         position
+
+    else if modifier.control then
+        { column = firstLeftNonSpace line column }
 
     else
         { column = column - 1 }
 
 
-moveRight : Position -> String -> Position
-moveRight ({ column } as position) line =
+moveRight : Position -> String -> InputModifier -> Position
+moveRight ({ column } as position) line modifier =
     if column == String.length line then
         position
+
+    else if modifier.control then
+        { column = firstRightNonSpace line column }
 
     else
         { column = column + 1 }
@@ -437,7 +503,7 @@ removeCharBefore ({ cursor, line } as model) =
         in
         { model
             | line = newLine
-            , cursor = moveLeft cursor line
+            , cursor = moveLeft cursor line model.modifier
         }
 
 
@@ -494,7 +560,7 @@ update msg model =
             )
 
         MoveLeft ->
-            ( { model | cursor = moveLeft model.cursor model.line }
+            ( { model | cursor = moveLeft model.cursor model.line model.modifier }
             , Cmd.none
             )
 
@@ -509,9 +575,12 @@ update msg model =
             )
 
         MoveRight ->
-            ( { model | cursor = moveRight model.cursor model.line }
+            ( { model | cursor = moveRight model.cursor model.line model.modifier }
             , Cmd.none
             )
+
+        Tab ->
+            ( insertChar '\t' model, Cmd.none )
 
         NewLine ->
             ( model
