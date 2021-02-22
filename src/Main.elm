@@ -33,8 +33,8 @@ type Msg
 
 init : flag -> ( Model, Cmd Msg )
 init _ =
-    ( { climodel = Cli.initModel }
-    , Dom.focus "editor_hidden_input"
+    ( { climodel = Cli.initModel "cli" }
+    , Dom.focus "cli-editor_hidden_input"
         |> Task.attempt (always NoOp)
     )
 

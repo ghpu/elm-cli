@@ -11,7 +11,8 @@ import Task
 
 
 type alias Model =
-    { line : String
+    { id : String
+    , line : String
     , cursor : Position
     , modifier : InputModifier
     }
@@ -63,9 +64,10 @@ type Msg
     | Focus
 
 
-initModel : Model
-initModel =
-    { line = ""
+initModel : String -> Model
+initModel id =
+    { id = id
+    , line = ""
     , cursor = Position 0
     , modifier =
         { control = False
@@ -247,7 +249,7 @@ viewEditor model =
         , viewContent model
         , H.div [ HA.attribute "style" "overflow:hidden; height:0; outline: none; position: fixed; top:0" ]
             [ H.input
-                [ HA.id "editor_hidden_input"
+                [ HA.id (model.id ++ "-editor_hidden_input")
                 , HE.custom "compositionend" compositionEndDecoder
                 , HE.preventDefaultOn "keydown" (keyDecoder KeyDown modifier)
                 , HE.preventDefaultOn "keyup" (keyDecoder KeyUp modifier)
